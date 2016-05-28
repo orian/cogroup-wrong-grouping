@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="cogroup-bug-reproduce">
+    <output-path>$PROJECT_DIR$/out/artifacts/cogroup_bug_reproduce</output-path>
+    <root id="archive" name="cogroup-bug-reproduce.jar">
+      <element id="directory" name="META-INF">
+        <element id="file-copy" path="$PROJECT_DIR$/src/main/resources/META-INF/MANIFEST.MF" />
+      </element>
+    </root>
+  </artifact>
+</component>

@@ -207,10 +207,10 @@ public class CoGroupPipeline {
   private static final TupleTag<CreateData.DumbData> tag2 = new TupleTag<>();
 
   private enum TestMode {
-    COGROUP, CONTAINER, GRUOP
+    COGROUP, CONTAINER, GROUP
   }
 
-  private static final TestMode TEST_MODE = TestMode.COGROUP;
+  private static final TestMode TEST_MODE = TestMode.GROUP;
 
   public static void main(String[] args) {
     FlinkPipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
@@ -244,7 +244,7 @@ public class CoGroupPipeline {
       PCollection<KV<Key, Container>> data = dataList.apply(Flatten.pCollections());
       data.apply(GroupByKey.create()).apply(ParDo.of(new MergeContainers()))
           .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
-    } else if (TEST_MODE == TestMode.GRUOP) {
+    } else if (TEST_MODE == TestMode.GROUP) {
       PCollection<KV<Key, CreateData.DumbData>> dataset = p.apply(
           AvroIO.Read.from("/tmp/dataset2-*").withSchema(CreateData.DumbData.class))
           .apply(WithKeys.of(new MakeKey()));

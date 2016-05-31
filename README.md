@@ -41,3 +41,12 @@ The summary will print how many key values missed a data1.
     INFO [eu.pawelsz.apache.beam.CoGroupPipeline.main()] (FlinkPipelineRunner.java:127) - item count : 3750000
     INFO [eu.pawelsz.apache.beam.CoGroupPipeline.main()] (FlinkPipelineRunner.java:127) - missing data1 : 45
 
+## Workarounds
+
+As for now I have two workarounds and ignorance:
+
+ 1. If there is one dominant dataset and other datasets are small (size << GB) then I use SideInput. **OK - verified**
+ 2. If I have multiple datasets of similar size I enclose it in a common container, flatten it and GroupByKey. **FAIL - verified**
+ 3. I measure occurrences and ignore the bug for now. **SUCKS**
+
+To verify workaround 2, modify the `CoGroupPipiline.COGROUP`.

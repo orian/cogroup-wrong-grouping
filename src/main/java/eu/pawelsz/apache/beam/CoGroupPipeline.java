@@ -9,7 +9,6 @@ import org.apache.beam.sdk.coders.AvroCoder;
 import org.apache.beam.sdk.coders.DefaultCoder;
 import org.apache.beam.sdk.io.AvroIO;
 import org.apache.beam.sdk.io.TextIO;
-import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.transforms.join.CoGbkResult;
@@ -33,7 +32,8 @@ public class CoGroupPipeline {
     @Nullable
     Long key2;
 
-    public Key() {}
+    public Key() {
+    }
 
     public Key(String s, Long k) {
       key1 = s;
@@ -48,7 +48,8 @@ public class CoGroupPipeline {
     @Nullable
     CreateData.DumbData val;
 
-    public Container() {}
+    public Container() {
+    }
 
     public Container(int tag, CreateData.DumbData val) {
       this.tag = tag;
@@ -100,7 +101,7 @@ public class CoGroupPipeline {
         LOG.info("no data2 for (" + key.key1 + "," + key.key2 + ")");
         missD2Cnt.addValue(1L);
       } else if (missingD1) {
-        LOG.info(count+" data2 items for (" + key.key1 + "," + key.key2 + ") marked as no-d1");
+        LOG.info(count + " data2 items for (" + key.key1 + "," + key.key2 + ") marked as no-d1");
         missD1Cnt.addValue(1L);
       } else {
         LOG.info(count + " data2 items for (" + key.key1 + "," + key.key2 + ")");
@@ -135,7 +136,7 @@ public class CoGroupPipeline {
       boolean missingD1 = true;
       long count = 0;
       for (Container container : containers) {
-        if(container.tag==1) {
+        if (container.tag == 1) {
           missingD1 = false;
         } else {
           count++;
@@ -148,7 +149,7 @@ public class CoGroupPipeline {
         LOG.info("no data2 for (" + key.key1 + "," + key.key2 + ")");
         missD2Cnt.addValue(1L);
       } else if (missingD1) {
-        LOG.info(count+" data2 items for (" + key.key1 + "," + key.key2 + ") marked as no-d1");
+        LOG.info(count + " data2 items for (" + key.key1 + "," + key.key2 + ") marked as no-d1");
         missD1Cnt.addValue(1L);
       } else {
         LOG.info(count + " data2 items for (" + key.key1 + "," + key.key2 + ")");
@@ -176,7 +177,7 @@ public class CoGroupPipeline {
       keyCnt.addValue(1L);
       long count = 0;
       for (CreateData.DumbData val : data) {
-          count++;
+        count++;
       }
       itemCnt.addValue(count);
 
@@ -204,7 +205,12 @@ public class CoGroupPipeline {
 
   private static final TupleTag<CreateData.DumbData> tag1 = new TupleTag<>();
   private static final TupleTag<CreateData.DumbData> tag2 = new TupleTag<>();
-  private static final int MODE = 3;
+
+  private enum TestMode {
+    COGROUP, CONTAINER, GRUOP
+  }
+
+  private static final TestMode TEST_MODE = TestMode.COGROUP;
 
   public static void main(String[] args) {
     FlinkPipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
@@ -213,7 +219,7 @@ public class CoGroupPipeline {
     options.setRunner(FlinkPipelineRunner.class);
     Pipeline p = Pipeline.create(options);
 
-    if (MODE==1) {
+    if (TEST_MODE == TestMode.COGROUP) {
       PCollection<KV<Key, CreateData.DumbData>> dataset1 = p.apply(
           AvroIO.Read.from("/tmp/dataset1-*").withSchema(CreateData.DumbData.class))
           .apply(WithKeys.of(new MakeKey()));
@@ -226,7 +232,7 @@ public class CoGroupPipeline {
           .apply(CoGroupByKey.create())
           .apply(ParDo.of(new Merge()))
           .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
-    } else if (MODE==2) {
+    } else if (TEST_MODE == TestMode.CONTAINER) {
       PCollection<KV<Key, Container>> dataset1 = p.apply(
           AvroIO.Read.from("/tmp/dataset1-*").withSchema(CreateData.DumbData.class))
           .apply(MapElements.via(new KeyedContainer(1)));
@@ -238,7 +244,7 @@ public class CoGroupPipeline {
       PCollection<KV<Key, Container>> data = dataList.apply(Flatten.pCollections());
       data.apply(GroupByKey.create()).apply(ParDo.of(new MergeContainers()))
           .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
-    } else if (MODE==3){
+    } else if (TEST_MODE == TestMode.GRUOP) {
       PCollection<KV<Key, CreateData.DumbData>> dataset = p.apply(
           AvroIO.Read.from("/tmp/dataset2-*").withSchema(CreateData.DumbData.class))
           .apply(WithKeys.of(new MakeKey()));

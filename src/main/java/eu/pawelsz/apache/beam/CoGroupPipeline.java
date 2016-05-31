@@ -157,6 +157,38 @@ public class CoGroupPipeline {
     }
   }
 
+  public static class MergeGbk extends DoFn<KV<Key, Iterable<CreateData.DumbData>>, String> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Merge.class);
+
+    private final Aggregator<Long, Long> keyCnt =
+        createAggregator("key count", new Sum.SumLongFn());
+
+    private final Aggregator<Long, Long> itemCnt =
+        createAggregator("item count", new Sum.SumLongFn());
+
+    @Override
+    public void processElement(ProcessContext c) throws Exception {
+      KV kv = c.element();
+      Key key = c.element().getKey();
+      Iterable<CreateData.DumbData> data = c.element().getValue();
+
+      keyCnt.addValue(1L);
+      long count = 0;
+      for (CreateData.DumbData val : data) {
+          count++;
+      }
+      itemCnt.addValue(count);
+
+      c.output(key.key1 + "," + key.key2 + "," + count);
+      if (count == 0) {
+        LOG.info("no data for (" + key.key1 + "," + key.key2 + ")");
+      } else {
+        LOG.info(count + " data items for (" + key.key1 + "," + key.key2 + ")");
+      }
+    }
+  }
+
   static class KeyedContainer extends SimpleFunction<CreateData.DumbData, KV<Key, Container>> {
     int tag;
 
@@ -172,7 +204,7 @@ public class CoGroupPipeline {
 
   private static final TupleTag<CreateData.DumbData> tag1 = new TupleTag<>();
   private static final TupleTag<CreateData.DumbData> tag2 = new TupleTag<>();
-  private static final boolean COGROUP = true;
+  private static final int MODE = 3;
 
   public static void main(String[] args) {
     PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
@@ -180,7 +212,7 @@ public class CoGroupPipeline {
     options.setRunner(FlinkPipelineRunner.class);
     Pipeline p = Pipeline.create(options);
 
-    if (COGROUP) {
+    if (MODE==0) {
       PCollection<KV<Key, CreateData.DumbData>> dataset1 = p.apply(
           AvroIO.Read.from("/tmp/dataset1-*").withSchema(CreateData.DumbData.class))
           .apply(WithKeys.of(new MakeKey()));
@@ -193,7 +225,7 @@ public class CoGroupPipeline {
           .apply(CoGroupByKey.create())
           .apply(ParDo.of(new Merge()))
           .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
-    } else {
+    } else if (MODE==2) {
       PCollection<KV<Key, Container>> dataset1 = p.apply(
           AvroIO.Read.from("/tmp/dataset1-*").withSchema(CreateData.DumbData.class))
           .apply(MapElements.via(new KeyedContainer(1)));
@@ -204,6 +236,13 @@ public class CoGroupPipeline {
       PCollectionList<KV<Key, Container>> dataList = PCollectionList.of(dataset1).and(dataset2);
       PCollection<KV<Key, Container>> data = dataList.apply(Flatten.pCollections());
       data.apply(GroupByKey.create()).apply(ParDo.of(new MergeContainers()))
+          .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
+    } else if (MODE==3){
+      PCollection<KV<Key, CreateData.DumbData>> dataset = p.apply(
+          AvroIO.Read.from("/tmp/dataset2-*").withSchema(CreateData.DumbData.class))
+          .apply(WithKeys.of(new MakeKey()));
+      dataset.apply(GroupByKey.create())
+          .apply(ParDo.of(new MergeGbk()))
           .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
     }
 

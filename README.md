@@ -49,4 +49,4 @@ As for now I have two workarounds and ignorance:
  2. If I have multiple datasets of similar size I enclose it in a common container, flatten it and GroupByKey. **FAIL - verified**
  3. I measure occurrences and ignore the bug for now. **SUCKS**
 
-To verify workaround 2, modify the `CoGroupPipiline.COGROUP`.
+To verify workaround 2, set the `CoGroupPipiline.MODE=2`.

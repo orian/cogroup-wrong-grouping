@@ -16,22 +16,33 @@
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.flink</groupId>
-      <artifactId>flink-java</artifactId>
-      <version>1.0.3</version>
-      <!--<scope>provided</scope>-->
-    </dependency>
-    <dependency>
-      <groupId>org.apache.beam.runners</groupId>
-      <artifactId>flink_2.10</artifactId>
-      <version>0.1.0-incubating-SNAPSHOT</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.beam</groupId>
       <artifactId>java-sdk-all</artifactId>
       <version>0.1.0-incubating-SNAPSHOT</version>
       <!--<scope>provided</scope>-->
     </dependency>
+    <!--<dependency>-->
+      <!--<groupId>org.apache.flink</groupId>-->
+      <!--<artifactId>flink-java</artifactId>-->
+      <!--<version>1.0.0</version>-->
+      <!--&lt;!&ndash;<scope>provided</scope>&ndash;&gt;-->
+    <!--</dependency>-->
+    <!--<dependency>-->
+      <!--<groupId>org.apache.beam.runners</groupId>-->
+      <!--<artifactId>core</artifactId>-->
+      <!--<version>0.1.0-incubating-SNAPSHOT</version>-->
+    <!--</dependency>-->
+    <dependency>
+      <groupId>org.apache.beam.runners</groupId>
+      <artifactId>flink_2.10</artifactId>
+      <version>0.1.0-incubating-SNAPSHOT</version>
+    </dependency>
+
+    <!--<dependency>-->
+    <!--<groupId>org.apache.beam.runners</groupId>-->
+    <!--<artifactId>flink-parent</artifactId>-->
+    <!--<version>0.1.0-incubating-SNAPSHOT</version>-->
+    <!--</dependency>-->
 
     <dependency>
       <groupId>org.slf4j</groupId>

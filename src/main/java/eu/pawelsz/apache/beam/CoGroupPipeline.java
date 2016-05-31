@@ -207,12 +207,13 @@ public class CoGroupPipeline {
   private static final int MODE = 3;
 
   public static void main(String[] args) {
-    PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
+    FlinkPipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
         .as(FlinkPipelineOptions.class);
+//    options.setStreaming(true);
     options.setRunner(FlinkPipelineRunner.class);
     Pipeline p = Pipeline.create(options);
 
-    if (MODE==0) {
+    if (MODE==1) {
       PCollection<KV<Key, CreateData.DumbData>> dataset1 = p.apply(
           AvroIO.Read.from("/tmp/dataset1-*").withSchema(CreateData.DumbData.class))
           .apply(WithKeys.of(new MakeKey()));

@@ -28,6 +28,8 @@ public class CreateData {
     @Nullable
     Long value1;
 
+    String blob;
+
     public DumbData() {
     }
   }
@@ -38,22 +40,24 @@ public class CreateData {
     int key2;
     int perKey;
     long val;
+    int blobSize;
 
     public Config() {
     }
 
-    public Config(int k1, int k2, int pk, long v) {
+    public Config(int k1, int k2, int pk, long v, int blob) {
       key1 = k1;
       key2 = k2;
       perKey = pk;
       val = v;
+      this.blobSize = blob;
     }
 
-    public static List<Config> of(int k1, int k2, int pk, long v, int shards) {
+    public static List<Config> of(int k1, int k2, int pk, long v, int blob, int shards) {
       pk = pk/shards;
       List<Config> c = new LinkedList<>();
       for (int i=0;i<shards;i++) {
-        c.add(new Config(k1,k2,pk,v));
+        c.add(new Config(k1,k2,pk,v, blob));
       }
       return c;
     }
@@ -64,6 +68,12 @@ public class CreateData {
     @Override
     public void processElement(ProcessContext c) throws Exception {
       Config cfg = c.element();
+
+      StringBuilder sb = new StringBuilder();
+      for (int i =0;i<cfg.blobSize;i++) {
+        sb.append("X");
+      }
+      String blob = sb.toString();
 
       ArrayList<String> bs = new ArrayList<>(cfg.key1);
       for (int i = 0; i < cfg.key1; i++) {
@@ -77,6 +87,7 @@ public class CreateData {
             dd.key1 = bs.get(i);
             dd.key2 = j;
             dd.value1 = cfg.val;
+            dd.blob = blob;
             c.output(dd);
           }
         }
@@ -92,13 +103,17 @@ public class CreateData {
     options.setRunner(FlinkPipelineRunner.class);
     Pipeline p = Pipeline.create(options);
 
-    p.apply(Create.of(Config.of(4, 100, 1, 1, 6)))
+    p.apply(Create.of(new Config(4, 100, 1, 1, 10)))
         .apply(ParDo.of(new Generator())).apply(
             AvroIO.Write.to("/tmp/dataset1").withSchema(DumbData.class).withNumShards(6));
 
-    p.apply(Create.of(Config.of(4, 100, 100000, 2, 6))).
+    p.apply(Create.of(Config.of(4, 100, 100000, 2, 10, 6))).
         apply(ParDo.of(new Generator())).apply(
             AvroIO.Write.to("/tmp/dataset2").withSchema(DumbData.class).withNumShards(6));
+
+    p.apply(Create.of(Config.of(200, 1, 10000, 2, 5000, 6))).
+        apply(ParDo.of(new Generator())).apply(
+        AvroIO.Write.to("/tmp/dataset3").withSchema(DumbData.class));
 
     p.run();
   }

@@ -65,6 +65,14 @@ public class CoGroupPipeline {
     }
   }
 
+  static class ExtractK1 extends SimpleFunction<CreateData.DumbData, String> {
+
+    @Override
+    public String apply(CreateData.DumbData dd) {
+      return dd.key1;
+    }
+  }
+
   public static class Merge extends DoFn<KV<Key, CoGbkResult>, String> {
 
     private static final Logger LOG = LoggerFactory.getLogger(Merge.class);
@@ -190,6 +198,41 @@ public class CoGroupPipeline {
     }
   }
 
+  public static class MergeGbkString extends DoFn<KV<String, Iterable<CreateData.DumbData>>, String> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(Merge.class);
+
+    private final Aggregator<Long, Long> keyCnt =
+        createAggregator("key count", new Sum.SumLongFn());
+
+    private final Aggregator<Long, Long> itemCnt =
+        createAggregator("item count", new Sum.SumLongFn());
+
+    @Override
+    public void processElement(ProcessContext c) throws Exception {
+      KV kv = c.element();
+      String key = c.element().getKey();
+      Iterable<CreateData.DumbData> data = c.element().getValue();
+
+      keyCnt.addValue(1L);
+      long count = 0;
+      for (CreateData.DumbData val : data) {
+        if (!val.key1.equals(key)) {
+          throw new Exception("keys don't match");
+        }
+        count++;
+      }
+      itemCnt.addValue(count);
+
+      c.output(key + "," + count);
+      if (count == 0) {
+        LOG.info("no data for (" + key + ")");
+      } else {
+        LOG.info(count + " data items for (" + key + ")");
+      }
+    }
+  }
+
   static class KeyedContainer extends SimpleFunction<CreateData.DumbData, KV<Key, Container>> {
     int tag;
 
@@ -207,10 +250,10 @@ public class CoGroupPipeline {
   private static final TupleTag<CreateData.DumbData> tag2 = new TupleTag<>();
 
   private enum TestMode {
-    COGROUP, CONTAINER, GROUP
+    COGROUP, CONTAINER, GROUP, SIMPLEKEY
   }
 
-  private static final TestMode TEST_MODE = TestMode.GROUP;
+  private static final TestMode TEST_MODE = TestMode.SIMPLEKEY;
 
   public static void main(String[] args) {
     FlinkPipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation()
@@ -250,6 +293,13 @@ public class CoGroupPipeline {
           .apply(WithKeys.of(new MakeKey()));
       dataset.apply(GroupByKey.create())
           .apply(ParDo.of(new MergeGbk()))
+          .apply(TextIO.Write.named("write data").to("/tmp/test-out"));
+    } else if (TEST_MODE == TestMode.SIMPLEKEY) {
+      PCollection<KV<String, CreateData.DumbData>> dataset = p.apply(
+          AvroIO.Read.from("/tmp/dataset3-*").withSchema(CreateData.DumbData.class))
+          .apply(WithKeys.of(new ExtractK1()));
+      dataset.apply(GroupByKey.create())
+          .apply(ParDo.of(new MergeGbkString()))
           .apply(TextIO.Write.named("write data").to("/tmp/test-out"));
     }
 

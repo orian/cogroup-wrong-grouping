@@ -231,7 +231,7 @@ public class CoGroupPipeline {
       KeyedPCollectionTuple.of(tag1, dataset1).and(tag2, dataset2)
           .apply(CoGroupByKey.create())
           .apply(ParDo.of(new Merge()))
-          .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
+          .apply(TextIO.Write.named("write data").to("/tmp/test-out"));
     } else if (TEST_MODE == TestMode.CONTAINER) {
       PCollection<KV<Key, Container>> dataset1 = p.apply(
           AvroIO.Read.from("/tmp/dataset1-*").withSchema(CreateData.DumbData.class))
@@ -243,14 +243,14 @@ public class CoGroupPipeline {
       PCollectionList<KV<Key, Container>> dataList = PCollectionList.of(dataset1).and(dataset2);
       PCollection<KV<Key, Container>> data = dataList.apply(Flatten.pCollections());
       data.apply(GroupByKey.create()).apply(ParDo.of(new MergeContainers()))
-          .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
+          .apply(TextIO.Write.named("write data").to("/tmp/test-out"));
     } else if (TEST_MODE == TestMode.GROUP) {
       PCollection<KV<Key, CreateData.DumbData>> dataset = p.apply(
           AvroIO.Read.from("/tmp/dataset2-*").withSchema(CreateData.DumbData.class))
           .apply(WithKeys.of(new MakeKey()));
       dataset.apply(GroupByKey.create())
           .apply(ParDo.of(new MergeGbk()))
-          .apply(TextIO.Write.named("write data").to("/tmp/test-out").withoutSharding());
+          .apply(TextIO.Write.named("write data").to("/tmp/test-out"));
     }
 
     p.run();

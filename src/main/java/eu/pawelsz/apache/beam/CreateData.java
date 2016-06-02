@@ -14,6 +14,8 @@ import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.TupleTag;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 public class CreateData {
 
@@ -45,6 +47,15 @@ public class CreateData {
       key2 = k2;
       perKey = pk;
       val = v;
+    }
+
+    public static List<Config> of(int k1, int k2, int pk, long v, int shards) {
+      pk = pk/shards;
+      List<Config> c = new LinkedList<>();
+      for (int i=0;i<shards;i++) {
+        c.add(new Config(k1,k2,pk,v));
+      }
+      return c;
     }
   }
 
@@ -81,11 +92,11 @@ public class CreateData {
     options.setRunner(FlinkPipelineRunner.class);
     Pipeline p = Pipeline.create(options);
 
-    p.apply(Create.of(new Config(3, 5, 1, 1)))
+    p.apply(Create.of(Config.of(4, 100, 1, 1, 6)))
         .apply(ParDo.of(new Generator())).apply(
             AvroIO.Write.to("/tmp/dataset1").withSchema(DumbData.class).withNumShards(6));
 
-    p.apply(Create.of(new Config(3, 5, 250000, 2))).
+    p.apply(Create.of(Config.of(4, 100, 100000, 2, 6))).
         apply(ParDo.of(new Generator())).apply(
             AvroIO.Write.to("/tmp/dataset2").withSchema(DumbData.class).withNumShards(6));
 
